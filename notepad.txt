@@ -1,0 +1,323 @@
+npm i react-icons    import { FcGoogle } from "react-icons/fc";
+npm install @reduxjs/toolkit react-redux
+
+
+//auth explaination
+
+// LOGIN
+// ─────────────────────────────
+
+// Firebase ID Token
+//        ↓
+// verifyIdToken()
+//        ↓
+// MongoDB User
+//        ↓
+// Generate sessionId
+//        ↓
+// Redis
+// session-ID → user data
+//        ↓
+// HTTP-only Cookie
+// "session" = sessionId
+
+
+// PROTECTED REQUEST
+// ─────────────────────────────
+
+// Browser
+//        ↓
+// Cookie: session=abc123
+//        ↓
+// protect middleware
+//        ↓
+// Redis GET session-abc123
+//        ↓
+//    ┌───────────────┐
+//    │               │
+// Not found        Found
+//    │               │
+//    ↓               ↓
+// ❌ 401         JSON.parse()
+//                    ↓
+//                req.user
+//                    ↓
+//                  next()
+//                    ↓
+//              Protected API
+LOGIN FLOW
+===========
+
+1. Firebase ID Token
+   ------------------
+   User logs in using Google/Firebase.
+
+   Firebase gives the frontend an ID token.
+
+   Example:
+   token = "eyJhbGciOiJSUzI1NiIs..."
+
+
+2. verifyIdToken()
+   ---------------
+   Backend receives the token:
+
+   const decoded = await getAuth(app).verifyIdToken(token);
+
+   Firebase Admin checks whether the token is valid.
+
+   If VALID:
+       decoded.uid
+       decoded.name
+       decoded.email
+       decoded.picture
+
+   If INVALID:
+       Login is rejected.
+
+
+3. MongoDB User
+   -------------
+   Backend searches MongoDB:
+
+   User.findOne({
+       firebaseUid: decoded.uid
+   });
+
+   If user exists:
+       Use existing user.
+
+   If user doesn't exist:
+       Create a new MongoDB user.
+
+
+4. Generate sessionId
+   -------------------
+   Backend creates a random session ID:
+
+   const sessionId = crypto.randomUUID();
+
+   Example:
+
+   sessionId = "abc123"
+
+
+5. Store session in Redis
+   -----------------------
+   Redis stores:
+
+   Key:
+       session-abc123
+
+   Value:
+       {
+           userId: "123",
+           name: "Deepak",
+           email: "deepak@gmail.com",
+           plan: "free",
+           credits: 100
+       }
+
+   Redis keeps this session for 7 days.
+
+
+6. HTTP-only Cookie
+   -----------------
+   Backend sends the session ID to the browser:
+
+   Cookie:
+       session=abc123
+
+   The browser stores this cookie.
+
+   IMPORTANT:
+   The browser stores only the session ID.
+   User information stays in Redis.
+
+
+====================================================
+
+PROTECTED REQUEST
+=================
+
+Suppose the user requests:
+
+    GET /api/profile
+
+
+1. Browser sends cookie
+   --------------------
+   Browser automatically sends:
+
+   Cookie:
+       session=abc123
+
+
+2. protect middleware
+   -------------------
+   Backend gets the cookie:
+
+   const sessionId = req.cookies?.session;
+
+   Result:
+
+   sessionId = "abc123"
+
+
+3. Check Redis
+   ------------
+   Backend searches:
+
+   redis.get("session-abc123");
+
+
+   TWO POSSIBILITIES:
+
+
+   CASE 1: SESSION NOT FOUND
+   -------------------------
+
+   Redis returns:
+
+       null
+
+   This can happen because:
+
+       - Session expired
+       - User logged out
+       - Invalid session ID
+       - Redis session was deleted
+
+   Backend returns:
+
+       401 Unauthorized
+
+   The protected API is NOT executed.
+
+
+   CASE 2: SESSION FOUND
+   ---------------------
+
+   Redis returns:
+
+       '{
+           "userId": "123",
+           "name": "Deepak",
+           "email": "deepak@gmail.com",
+           "plan": "free",
+           "credits": 100
+        }'
+
+
+4. JSON.parse()
+   -------------
+   Redis gives us a JSON string.
+
+   So we convert it back into a JavaScript object:
+
+   req.user = JSON.parse(session);
+
+
+   Now:
+
+   req.user = {
+       userId: "123",
+       name: "Deepak",
+       email: "deepak@gmail.com",
+       plan: "free",
+       credits: 100
+   };
+
+
+5. next()
+   -------
+   next() means:
+
+       "Authentication is successful.
+        Continue to the next controller."
+
+
+   Example:
+
+   router.get("/profile", protect, getProfile);
+
+
+   Flow:
+
+   /profile
+      ↓
+   protect
+      ↓
+   Redis session valid?
+      ↓
+   req.user = user information
+      ↓
+   next()
+      ↓
+   getProfile()
+
+
+====================================================
+
+COMPLETE FLOW
+=============
+
+LOGIN:
+
+Frontend
+   ↓
+Firebase Login
+   ↓
+Firebase ID Token
+   ↓
+verifyIdToken()
+   ↓
+Get Firebase user details
+   ↓
+Find/Create MongoDB User
+   ↓
+Generate sessionId
+   ↓
+Store sessionId + user data in Redis
+   ↓
+Set HTTP-only Cookie
+   ↓
+Login Complete
+
+
+PROTECTED REQUEST:
+
+Browser
+   ↓
+Cookie: session=abc123
+   ↓
+protect middleware
+   ↓
+Get sessionId from cookie
+   ↓
+Redis GET session-abc123
+   ↓
+       ┌─────────────────┐
+       │                 │
+   NOT FOUND           FOUND
+       │                 │
+       ↓                 ↓
+    401 Error       JSON.parse()
+                         ↓
+                      req.user
+                         ↓
+                       next()
+                         ↓
+                   Protected API
+
+
+KEY IDEA
+========
+
+Firebase  →  Verifies WHO the user is
+MongoDB   →  Stores user/application data
+Redis     →  Stores active login sessions
+Cookie    →  Stores the session ID in the browser
+protect   →  Checks whether the session is valid
+req.user  →  Makes logged-in user data available to controllers
+next()    →  Allows the request to continue

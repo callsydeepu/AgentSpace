@@ -1,0 +1,427 @@
+WHY DO WE NEED STATE MANAGEMENT?
+================================
+
+Imagine you have:
+
+    App
+     │
+     ├── Navbar
+     │
+     ├── Home
+     │
+     ├── Products
+     │
+     └── Cart
+
+
+Suppose the logged-in user is:
+
+    user = Deepak
+
+
+Navbar needs the user.
+Home needs the user.
+Cart needs the user.
+Profile needs the user.
+
+
+If you keep passing it manually:
+
+    App
+     ↓ user
+    Home
+     ↓ user
+    Component
+     ↓ user
+    Another component
+
+
+This becomes difficult when the application becomes large.
+
+State management provides a better way to manage
+and share this data.
+
+Redux is a STATE MANAGEMENT library.
+
+It is used when many components in a React application
+need to share and update the same data.
+
+Simple definition:
+
+Redux = A central place to store application state.
+
+
+WHY REDUX?
+==========
+
+Imagine your application has:
+
+    App
+    │
+    ├── Navbar
+    │      needs user
+    │
+    ├── Home
+    │      needs user
+    │
+    ├── Profile
+    │      needs user
+    │
+    ├── Products
+    │      needs cart
+    │
+    └── Cart
+           needs cart
+
+
+Without Redux:
+
+    App
+     ↓
+    Props
+     ↓
+    Component
+     ↓
+    Props
+     ↓
+    Another Component
+
+This can become difficult.
+
+With Redux:
+
+                Redux Store
+              ┌─────────────┐
+              │ user        │
+              │ cart        │
+              │ products    │
+              │ theme       │
+              └─────────────┘
+                ↑    ↑    ↑
+                │    │    │
+              Navbar Home Cart
+
+
+All components can access the shared state.
+
+
+MAIN PARTS OF REDUX
+===================
+
+Redux mainly has:
+
+    1. Store
+    2. State
+    3. Action
+    4. Reducer
+    5. Dispatch
+    6. Selector
+
+
+1. STORE
+========
+
+Store is the central place where Redux keeps your state.
+
+Example:
+
+store
+  │
+  ├── user
+  ├── cart
+  └── products
+
+
+Example state:
+
+{
+    user: {
+        name: "Deepak",
+        email: "deepak@gmail.com"
+    },
+
+    cart: [
+        { name: "Laptop", price: 50000 }
+    ]
+}
+
+
+2. STATE
+========
+
+State is the actual data stored inside Redux.
+
+Example:
+
+user = {
+    name: "Deepak"
+}
+
+
+3. ACTION
+=========
+
+Action describes WHAT happened.
+
+Example:
+
+    "LOGIN"
+
+or:
+
+    "ADD_TO_CART"
+
+An action can contain data.
+
+Example:
+
+{
+    type: "LOGIN",
+    payload: userData
+}
+
+
+4. REDUCER
+==========
+
+Reducer decides HOW the state should change
+when an action happens.
+
+Example:
+
+    Action:
+        LOGIN
+
+    Reducer:
+        Put user information into state.
+
+
+5. DISPATCH
+===========
+
+dispatch() sends an action to Redux.
+
+Example:
+
+dispatch(login(userData));
+
+
+Meaning:
+
+"Redux, something happened.
+Please update the state."
+
+
+6. SELECTOR
+===========
+
+Selector is used to READ data from Redux.
+
+Example:
+
+const user = useSelector(state => state.user);
+
+
+Now:
+
+user
+  ↓
+Redux user state
+
+
+COMPLETE FLOW
+=============
+
+Suppose user logs in.
+
+Frontend
+   ↓
+Login successful
+   ↓
+dispatch(login(userData))
+   ↓
+Action
+   ↓
+Reducer
+   ↓
+Update Redux Store
+   ↓
+Store
+   ↓
+user = userData
+   ↓
+Components automatically get updated
+
+
+VISUAL FLOW
+===========
+
+Component
+    │
+    │ dispatch(action)
+    ▼
+ Action
+    │
+    ▼
+ Reducer
+    │
+    │ updates
+    ▼
+ Redux Store
+    │
+    │ new state
+    ▼
+ Components
+    │
+    ▼
+ Updated UI
+
+
+EXAMPLE
+=======
+
+Suppose we want to store a counter.
+
+
+Action:
+
+{
+    type: "INCREMENT"
+}
+
+
+Reducer:
+
+(previous state)
+      +
+INCREMENT
+      ↓
+new state
+
+
+If:
+
+count = 0
+
+and we dispatch:
+
+dispatch({
+    type: "INCREMENT"
+});
+
+
+Reducer changes:
+
+count = 1
+
+
+React then updates the UI.
+
+
+REDUX TOOLKIT
+=============
+
+Today, you will usually use:
+
+    Redux Toolkit (RTK)
+
+instead of writing old-style Redux manually.
+
+Install:
+
+npm install @reduxjs/toolkit react-redux
+
+
+Redux Toolkit makes Redux easier and reduces
+boilerplate code.
+
+
+REDUX vs useState
+=================
+
+useState:
+
+    Good for:
+        Local component state
+
+    Example:
+        isLoading
+        inputValue
+        modalOpen
+
+
+Redux:
+
+    Good for:
+        Shared/global application state
+
+    Example:
+        logged-in user
+        shopping cart
+        notifications
+        application settings
+
+
+YOUR LOGIN EXAMPLE
+==================
+
+Currently you have:
+
+const [user, setUser] = useState(null);
+
+
+Then:
+
+<Home user={user} setUser={setUser} />
+
+
+With Redux, instead of passing user through props:
+
+    App
+     ↓
+    Navbar
+     ↓
+    Home
+     ↓
+    Profile
+
+you could store it centrally:
+
+             Redux Store
+                  │
+             user = Deepak
+              /    |    \
+             /     |     \
+        Navbar   Home   Profile
+
+
+Each component can access the user directly.
+
+
+IMPORTANT
+=========
+
+Redux does NOT replace Firebase.
+
+Firebase:
+    Authentication
+
+MongoDB:
+    Database
+
+Redis:
+    Sessions
+
+Redux:
+    Frontend application state
+
+
+Think of it like:
+
+Firebase → "Who is the user?"
+
+Redis    → "Is the user's session valid?"
+
+MongoDB  → "What data belongs to this user?"
+
+Redux    → "Which user/data should my React UI currently use?"
