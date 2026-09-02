@@ -1,0 +1,134 @@
+================================================================================
+                     CORTEXAI AGENT SERVICE - DETAILED FLOW & ARCHITECTURE
+================================================================================
+
+1. OVERVIEW
+===========
+The Agent Service is the multi-agent AI engine of CortexAI. It uses LangGraph 
+(StateGraph) to route user prompts, images, and documents to specialized sub-agents.
+Each sub-agent uses the optimal LLM (Groq Llama 3, Gemini 2.5 Flash, or DeepSeek via 
+OpenRouter) to perform its task.
+
+--------------------------------------------------------------------------------
+
+2. END-TO-END EXECUTION FLOW
+============================
+
+   [ User / Frontend ]
+           │
+           ▼ (POST /api/agent/chat)
+   [ API Gateway (Port 8000) ]
+           │  • Validates session cookie via Redis
+           │  • Attaches header: x-user-id
+           ▼ (Proxies to Port 8003)
+   [ Agent Controller (agent.controller.js) ]
+           │
+           ├──► 1. Calls CHAT_SERVICE (/save-message) to save User Prompt
+           │
+           ├──► 2. Invokes LangGraph StateGraph (graph.invoke)
+           │          │
+           │          ├──► [ START ]
+           │          │       │
+           │          │       ▼
+           │          ├──► [ Router Node (router.js) ]
+           │          │       │  • Checks if manual agent selected (chat, coding, etc.)
+           │          │       │  • Checks file mimetype:
+           │          │       │      - application/pdf ──► pdfRag agent
+           │          │       │      - image/*         ──► imageAnalyzer agent
+           │          │       │  • Auto-mode: Uses Groq LLM to classify prompt intent
+           │          │       │
+           │          │       ▼
+           │          ├──► [ Conditional Branching ]
+           │          │       ├─► Chat Agent       (Groq / Llama 3)
+           │          │       ├─► Search Agent     (Tavily API ──► Chat Agent)
+           │          │       ├─► Coding Agent     (OpenRouter / DeepSeek)
+           │          │       ├─► PDF Agent        (PDFKit ──► AWS S3)
+           │          │       ├─► PPT Agent        (PPTXGenJS ──► AWS S3)
+           │          │       ├─► Vision Agent     (Pollinations ──► AWS S3)
+           │          │       ├─► PDF RAG Agent    (pdf-parse ──► Vector DB)
+           │          │       └─► Image Analyzer   (Gemini 2.5 Flash Vision)
+           │          │
+           │          └──► [ END ]
+           │
+           ├──► 3. Calls CHAT_SERVICE (/save-message) to save AI Response & Artifacts
+           │
+           ▼
+   [ Returns JSON Response to Frontend: { answer, images, artifacts } ]
+
+--------------------------------------------------------------------------------
+
+3. LANGGRAPH STATE SCHEMA (graph/state.js)
+=========================================
+The state object passed between graph nodes contains:
+  • prompt          : User query text
+  • aiResponse      : Assistant generated output string
+  • agent           : Active agent name ("chat", "coding", "pdfRag", etc.)
+  • conversationId  : Current conversation ID
+  • searchResults   : Tavily web search results (if search agent executed)
+  • images          : Array of generated or retrieved image URLs
+  • artifacts       : Structured file artifacts (e.g. generated project files)
+  • userId          : User ID from x-user-id header
+  • file            : Uploaded file object from Multer (buffer, path, mimetype)
+
+--------------------------------------------------------------------------------
+
+4. SUB-AGENTS & THEIR RESPONSIBILITIES
+======================================
+
+1. CHAT AGENT (agents/chat.agent.js)
+   - Uses Groq (Llama 3 / GPT-OSS).
+   - Fetches message history using getMemory(conversationId).
+   - Formats responses in clean Markdown.
+   - If searchResults exist in state, answers using live web context.
+
+2. SEARCH AGENT (agents/search.agent.js)
+   - Executes web query via Tavily API (config/tavily.js).
+   - Populates state.searchResults and state.images.
+   - Routes search results to Chat Agent to generate a grounded response.
+
+3. CODING AGENT (agents/coding.agent.js)
+   - Uses OpenRouter / DeepSeek model.
+   - Classifies user request (CODE_GENERATION, DEBUGGING, EXPLANATION).
+   - Generates multi-file project artifacts (HTML, CSS, JS) formatted as JSON.
+
+4. PDF AGENT (agents/pdf.agent.js)
+   - Uses LLM to create structured document sections.
+   - Compiles PDF binary in-memory using PDFKit.
+   - Uploads PDF to AWS S3 and generates a presigned download URL.
+
+5. PPT AGENT (agents/ppt.agent.js)
+   - Uses LLM to generate 6 presentation slides with bullet points.
+   - Builds PowerPoint presentation using PPTXGenJS.
+   - Uploads .pptx to AWS S3 and returns a presigned download URL.
+
+6. VISION / IMAGE GEN AGENT (agents/vision.agent.js)
+   - Expands user prompt into a high-detail cinematic photo prompt.
+   - Fetches generated image from Pollinations API.
+   - Stores image in AWS S3 and returns image markdown link.
+
+7. PDF RAG AGENT (agents/pdfRag.agent.js)
+   - Extracts text from uploaded PDF using pdf-parse.
+   - Splits text into chunks using RecursiveCharacterTextSplitter.
+   - Index chunks in vectorStore (config/vectorDb.js).
+   - Performs similarity search for user prompt and answers strictly from PDF.
+
+8. IMAGE ANALYZER (agents/imageAnalyzer.agent.js)
+   - Reads image file buffer and converts to base64.
+   - Passes base64 image and prompt to Gemini 2.5 Flash Vision.
+   - Extracts text, charts, or detailed visual descriptions.
+
+--------------------------------------------------------------------------------
+
+5. CONFIGURATION & UTILITY ECOSYSTEM
+====================================
+• config/llmModels.js  : Lazily constructs Groq, Gemini, and OpenRouter LLM instances.
+• config/memory.js     : Fetches past messages from Chat Service.
+• config/tavily.js     : Handles Tavily web search API calls.
+• config/vectorDb.js   : In-memory vector store & similarity search logic.
+• config/s3.js         : AWS S3 Client instance.
+• utils/uploadToS3.js  : Uploads buffers to S3 bucket.
+• utils/getFromS3.js   : Generates presigned URLs for private S3 objects.
+• config/agentLimit.js : Enforces usage rate limits per user.
+• utils/deductCredits.js: Deducts user plan credits per request.
+
+================================================================================

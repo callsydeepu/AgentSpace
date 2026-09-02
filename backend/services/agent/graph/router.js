@@ -1,5 +1,4 @@
-import { getModel } from "../config/llmmodels.js"
-import { agent } from "../controllers/agent.controller.js"
+import { getModel } from "../config/llmModels.js"
 
 export const router = async (state) => {
 
@@ -13,8 +12,9 @@ export const router = async (state) => {
   if(state.file){
 if(state.file.mimetype==="application/pdf"){
     return {
-      ...state,
+      ...state,   // ...state--> “Keep everything that was already in the state, but change the agent to coding.”
       agent:"pdfRag"
+      
     }
   }
 
@@ -29,7 +29,7 @@ if(state.file.mimetype==="application/pdf"){
   
 
 
-  const llm = await getModel("router")
+  const llm = await getModel("router")  //which llm should i use  //getModel("chat") //o/p's:groq
   const prompt = `You are an agent router.
 
 Available agents:
@@ -88,7 +88,7 @@ User Query:
  ${state.prompt}
 `
 
-  const response = await llm.invoke(prompt)
+  const response = await llm.invoke(prompt) 
 
   return {
     ...state,
@@ -100,3 +100,34 @@ User Query:
 
 
 }
+
+
+// User: "Write Python code"
+//         ↓
+// agentState
+// { prompt: "...", agent: "auto" }
+//         ↓
+// router(state)
+//         ↓
+// Is agent manually selected?
+//    YES → use selected agent
+//    NO
+//         ↓
+// Is file uploaded?
+//    PDF   → pdfRag
+//    Image → imageAnalyzer
+//    NO
+//         ↓
+// getModel("router")
+//         ↓
+// No "router" case → default → Groq
+//         ↓
+// Groq analyzes prompt
+//         ↓
+// Returns: "coding"
+//         ↓
+// state.agent = "coding"
+//         ↓
+// LangGraph → codingAgent
+//         ↓
+// Final response
