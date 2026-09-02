@@ -1,26 +1,37 @@
-# Dependency directories
+# Dependencies
 node_modules/
 **/node_modules/
 
-# Build outputs
-dist/
-dist-ssr/
-build/
-out/
-bin/
-obj/
-
-# Environment files and Secrets
+# Environment files & Secret Keys
 .env
 .env.*
 !.env.example
 *.env
 serviceAccountKey.json
 **/serviceAccountKey.json
+credentials.json
 *.pem
 *.key
+*.pfx
 *.p12
-credentials.json
+
+# Build & Output directories
+dist/
+**/dist/
+dist-ssr/
+build/
+out/
+bin/
+obj/
+coverage/
+
+# Cache & Temporary files
+.cache/
+.vite/
+.eslintcache
+*.tsbuildinfo
+*.tmp
+tmp/
 
 # Logs
 logs/
@@ -31,13 +42,20 @@ yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-# OS & Editor generated files
+# OS Generated Files
 .DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
 Thumbs.db
-.idea/
+
+# IDE & Editor Settings
 .vscode/*
 !.vscode/extensions.json
 !.vscode/settings.json
+.idea/
 *.suo
 *.ntvs*
 *.njsproj
