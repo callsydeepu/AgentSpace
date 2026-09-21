@@ -5,7 +5,9 @@ import { FcGoogle } from "react-icons/fc"
 import api from "../../utils/axios.js"
 import { useDispatch, useSelector } from 'react-redux'
 import { setUserdata } from '../redux/userSlice.js'
-
+import SideBar from '../components/SideBar.jsx'
+import ChatArea from '../components/ChatArea.jsx'
+import Artifact from '../components/Artifact.jsx'
 function Home() {
     const dispatch = useDispatch()
     const user = useSelector((state) => state.user.userData)
@@ -44,34 +46,28 @@ function Home() {
     }
 
     return (
-        <div className='h-screen flex bg-[#0d0f14] text-white overflow-hidden p-8'>
-            {!user ? (
-                <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur'>
-                    <div className='w-[340px] bg-[#13151c] border border-white/[0.08] rounded-2xl p-7 flex flex-col gap-5'>
-                        <div className='flex flex-col gap-1'>
-                            <h2 className='text-[17px] font-semibold text-slate-100 tracking-tight'>Welcome to CortexAI</h2>
-                            <p className='text-[13px] text-slate-500'>Please login to continue using the app.</p>
-                        </div>
+        <div className='h-screen  flex bg-[#0d0f14] text-white overflow-hidden'>
 
-                        <button 
-                            disabled={loading}
-                            className={`w-full flex items-center justify-center gap-3 py-[11px] rounded-xl text-sm font-medium text-black/90 bg-white hover:bg-gray-200 transition-all duration-150 cursor-pointer ${loading ? 'opacity-50 cursor-not-allowed' : ''}`}
-                            onClick={googleLogin}
-                        >
-                            <FcGoogle size={15} />
-                            {loading ? 'Signing in...' : 'Continue With Google'}
-                        </button>
+<SideBar/>
+<ChatArea/>
+<Artifact/>
+{!user &&   <div className='fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur'>
+                <div className='w-[340px] bg-[#13151c] border border-white/[0.08] rounded-2xl p-7 flex flex-col gap-5'>
+                    <div className='flex flex-col gap-1'>
+                        <h2 className='text-[17px] font-semibold text-slate-100 tracking-tight'>Welcome to AgentSpace</h2>
+                        <p className='text-[13px] text-slate-500'>Please login to continue using the app.</p>
                     </div>
+
+                    <button className='w-full flex items-center justify-center gap-3 py-[11px] rounded-xl text-sm font-medium text-black/90 bg-white hover:bg-gray-200  transition-all duration-150 cursor-pointer' onClick={googleLogin}>
+                        <FcGoogle size={15} />
+                        Continue With Google
+                    </button>
                 </div>
-            ) : (
-                <div className='flex flex-col gap-4'>
-                    <h1 className='text-2xl font-bold'>Welcome back, {user.name}!</h1>
-                    <p className='text-gray-400'>Email: {user.email}</p>
-                    {user.avatar && <img src={user.avatar} alt="Avatar" className='w-12 h-12 rounded-full' />}
-                </div>
-            )}
+            </div>}
+          
         </div>
     )
 }
+
 
 export default Home

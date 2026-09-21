@@ -14,7 +14,7 @@ export const imageAnalyzer =async (state) => {
 
         const messages = [
             new SystemMessage(
-                `You are CortexAI image analyzer Agent.
+                `You are AgentSpace image analyzer Agent.
 
 Rules:
 

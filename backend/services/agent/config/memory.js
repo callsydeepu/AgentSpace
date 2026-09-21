@@ -1,12 +1,30 @@
-import axios from "axios"
-
-export const getMemory = async (conversationId) => {
-    try {
-        if (!conversationId) return []
-        const response = await axios.get(`${process.env.CHAT_SERVICE}/get-messages/${conversationId}`)
-        return response.data || []
-    } catch (error) {
-        console.log("getMemory error:", error.message)
-        return []
+import redis from "../../../shared/redis/redis.js"
+import { getMessages } from "../utils/getMessages.js"
+export const getMemory=async (conversationId)=>{
+    const key=`messages-${conversationId}`
+    const cached=await redis.get(key)
+    if(cached){
+        return JSON.parse(cached)
     }
+    
+    const messages=await getMessages(conversationId)
+    await redis.set(key,JSON.stringify(messages),"EX",24*60*60)
+    
+    return messages
 }
+//latest 20 messages only .. if 2st message that delete starting message(shift message)
+export const addMessage=async (conversationId,role,content)=>{
+     const key=`messages-${conversationId}`
+     const rawMessages=await redis.get(key)
+     const messages=rawMessages?JSON.parse(rawMessages):[]
+     messages.push({
+        role,content
+     })
+
+     if(messages.length>20){
+        messages.shift()
+     }
+
+     await redis.set(key,JSON.stringify(messages))
+}
+

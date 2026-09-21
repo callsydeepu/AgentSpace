@@ -1,6 +1,6 @@
 npm i react-icons    import { FcGoogle } from "react-icons/fc";
 npm install @reduxjs/toolkit react-redux
-
+npm i lucide-react
 
 //auth explaination
 

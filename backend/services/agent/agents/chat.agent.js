@@ -26,7 +26,7 @@ Answer the user using only the above search results.
 
 
     const systemPrompt = `
-    You are CortexAI, an intelligent AI assistant.
+    You are AgentSpace AI, an intelligent AI assistant.
 
  
     ${searchContext}

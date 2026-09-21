@@ -33,7 +33,7 @@ export const pdfRag=async (state)=>{
       const llm=await getModel("pdf-rag")
 
        const messages=[
-        new SystemMessage(`You are CortexAI PDF Assistant.
+        new SystemMessage(`You are AgentSpace PDF Assistant.
 
 Rules:
 

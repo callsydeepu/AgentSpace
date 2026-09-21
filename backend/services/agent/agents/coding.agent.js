@@ -26,7 +26,7 @@ ${state.prompt}
     const intent=intentRes.content
     if(intent=="CODE_GENERATION"){
         const prompt=`
-        You are CortexAI Coding Agent.
+        You are AgentSpace Coding Agent.
 
 Generate the requested project.
 
